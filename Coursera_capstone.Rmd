@@ -1,0 +1,310 @@
+---
+title: "Coursera capstone Project"
+author: "James"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## Introduction
+
+In this case study, I have analyzed the Bellabeat data in order to answer some key business questions. I have implemented the processes taught to me during my learning with coursera.
+
+### About the company Bellabeat.
+
+Bellabeat, is a high-tech manufacturer of health-focused products for women. Bellabeat is a successful small
+company, and they have the potential to become a larger player in the global smart device market. 
+*Urška Sršen and Sando Mur* founded Bellabeat, a high-tech company that manufactures health-focused smart
+products. Collecting data on activity, sleep, stress, and reproductive health has allowed Bellabeat to empower
+women with knowledge about their own health and habits. Since it was founded in 2013, Bellabeat has grown
+rapidly and quickly positioned itself as a tech-driven wellness company for women.
+
+#### Context of the case study
+
+The purpose of this study is to analyze Bellabeats smart device data to gain and share insights concerning usage of their smart devices. This in return will guide the company on the necessary steps to take to even reach more clients to increase the usage of their devices.
+
+#### Ask phase
+
+In this phase, I aligned myself to understand the data and the problem I have to solve as a Data detective.To achieve this, effective questions needed to be asked.
+
+  - What are the Business plans ?
+  - Who are the main Stakeholders ?
+  - What are the trends in smart device usage ?
+  
+#### Data Preparation. (Prepare phase)
+
+In this phase, I will download the working data.
+I will make sure I have all the data I need for this project to be a success.
+
+#### Data Sources
+This data was obtained from the Coursera Capstone Project resources webpage.
+
+##### Loading packages.
+
+The packages loaded here are already pre-installed
+
+```{r echo=TRUE , message = FALSE , warning = FALSE}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(here)
+library(skimr)
+library(janitor)
+```
+
+##### Loading datasets.
+
+Importing the datasets will help me to Clean, format and organize the data.
+
+- dailyActivities_merged.
+
+```{r}
+#head(Activity)
+setwd("C:/Users/james/Documents/R_projects/capstone")
+Activity <- read.csv("dailyActivity_merged.csv")
+Calories <- read.csv("dailyCalories_merged.csv")
+Sleep <- read.csv("sleepDay_merged.csv")
+
+```
+
+Interacting with the dataset for an idea of what it contains.
+
+```{r}
+head(Activity)
+```
+
+The columns in this dataset.
+```{r}
+colnames(Activity)
+```
+
+Column types
+```{r}
+str(Activity)
+```
+ 
+ - Reading the head of dailyCalories_merged dataset
+
+```{r}
+head(Calories)
+```
+Columns in dailyCalories_merged dataset
+
+```{r}
+colnames(Calories)
+```
+
+Column data types.
+
+```{r}
+str(Calories)
+```
+
+- Reading the head of sleepDay_merged dataset.
+
+```{r}
+head(Sleep)
+```
+
+```{r}
+colnames(Sleep)
+```
+
+```{r}
+str(Sleep)
+```
+
+After importing the required datasets, it is time to process the data. 
+
+### Cleaning the datasets.(Process phase)
+#### Basics cleaning.
+
+The functions glimpse(), skim_without_charts() are essential in this phase. To ensure that the column names are uniform I applied the clean_names() function.
+
+- The datasets Activity, Calories and Intestines were clean ie. without Spelling errors, missing values, extra and blank spaces and no blanks were found.
+
+- For the Sleep dataset, 3 duplicates were found and removed.
+
+- For Weight dataset, too many missing values were found in one column and hence I decided to get rid of that
+column
+
+#### Fixing formatting
+
+The Date columns are not well formated, and hence requires to be formated correctly.
+
+##### Formating the date columns in Activity and Sleep Datasets
+
+```{r}
+Activity$ActivityDate=as.POSIXct(Activity$ActivityDate, format="%m/%d/%Y", tz=Sys.timezone())
+Activity$date <- format(Activity$ActivityDate, format = "%m/%d/%y")
+Activity$ActivityDate=as.Date(Activity$ActivityDate, format="%m/%d/%Y", tz=Sys.timezone())
+Activity$date=as.Date(Activity$date, format="%m/%d/%Y")
+
+# Sleep
+
+Sleep$SleepDay=as.POSIXct(Sleep$SleepDay, format="%m/%d/%Y %I:%M:%S %p", tz=Sys.timezone())
+Sleep$date <- format(Sleep$SleepDay, format = "%m/%d/%y")
+Sleep$date=as.Date(Sleep$date, "% m/% d/% y")
+
+
+```
+
+#### Summarizing the datasets. (Analyze phase)
+
+After cleaning the datasets, now its time for Analysis.
+We can start by determining the number of participants in the datasets.The use of pipes in this case simplifies the flow of assignments.
+
+#### *Participants in Activity Data*
+
+```{r}
+Activity %>% 
+  summarise(Activity_Participants = n_distinct(Activity$Id))
+```
+
+##### Participants in Sleep Data
+
+```{r}
+Sleep %>% 
+  summarise(Sleep_Participants = n_distinct(Sleep$Id))
+```
+
+There are 33 participants in the Activity data and 24 in the Sleep Data.
+In this Case Study I focused on the Activity and Sleep datasets for my analysis.
+
+Diving into summary statistics for the Activity data.
+
+```{r}
+Activity %>% 
+  select(TotalSteps,TotalDistance, Calories, SedentaryMinutes) %>% 
+  summary()
+```
+
+Exploring summary statistics for the Sleep dataset.
+
+```{r}
+Sleep %>%
+select(TotalSleepRecords, TotalMinutesAsleep, TotalTimeInBed) %>%
+summary()
+```
+
+##### Key Findings from the Summary statistics show that:
+
+- From the Activity dataset,  the average Sedentary time (16.52 hours) is very high.As the target audience, Belabeat needs to have a good marketing strategy for its smart devices to avoid health risk among women.
+
+- The average sleep time is 7 hours.
+- Average total steps per day (7638 steps) is a little bit less than recommended by the CDC. According
+to the CDC research, taking 8,000 steps per day is associated with a 51% lower risk for all-cause
+mortality (or death from all causes). And taking 12,000 steps per day was associated with a 65% lower
+risk compared with taking 4,000 steps.
+
+#### Merging the data.
+
+Merging the datasets will enrich my visualizations and the general insights.
+I will merge the Activity and sleep dataset using th e Id column.
+
+The outer join will allow me to work with all the Activity dataset and the matching Id columns in the Sleep dataset.
+
+
+
+```{r}
+Combined_data_outer <- merge(Sleep, Activity, by="Id", all = TRUE)
+n_distinct(Combined_data_outer$Id)
+```
+
+There are 33 participants in the combined dataset.
+
+
+##### Data visualization (Share and Act Phases)
+
+Now let’s visualize some key explorations.
+
+##### Relationship between Steps and Sedentary time
+
+What’s the relationship between steps taken in a day and sedentary minutes?
+
+```{r}
+ggplot(data=Activity, aes(x=TotalSteps, y=SedentaryMinutes)) + geom_point() + geom_smooth() + labs(title = "Total Steps vs Sedentary Minutes")
+```
+
+The plot indicates a negative correlation between Steps and Sedentary time. The more Sedentary time you
+have, the less Steps you’re taking during the day. This data shows that the company need to market more to
+the customer segments with high Sedentary time. And to do that, the company needs to find ways to get
+customers get started in walking more and also measure their daily steps.
+
+#### Relationship between Distance covered by day.
+
+```{r}
+ggplot(Activity, aes(x=WeekDay, y=TotalDistance)) + geom_col()+
+  labs(title="Distance covered by Day")  
+```
+
+
+From the chart we can conclude that Tuesday had the most distance covered.The company can therefore engage with customers particularly during this day. It is most certainly that this is the day that customers are most active.
+
+
+#### Relationship between Minutes Asleep and Time in Bed.
+
+
+```{r}
+ggplot(data=Sleep, aes(x=TotalMinutesAsleep, y=TotalTimeInBed)) + geom_point()+ geom_smooth() 
+```
+
+From this plot, it is clear that the users of smart devices are spending almost the same amount in bed as when asleep. From an earlier chart we observed that the average sleeping hours is 7, Bellabeat should use sleeping notifications from their smart devices to notify their users of sleeping time. The average sleeping hours of a human is 8 hours.
+
+
+#### Total steps against Calories burnt.
+
+Now, let use look whether there is a relationship between the total steps and the calories burnt.
+
+```{r}
+ggplot(data=Activity, aes(x=TotalSteps, y=Calories)) +
+geom_point() + geom_smooth() + labs(title="Total Steps vs. Calories")
+```
+
+
+As expected,there is a positive correlation, as the number of steps increases, so does the rate of calories burnt.
+
+### Conclusions and recommendations for the Business.
+
+Collecting data on activity, calories and sleep is essential to keep Bellabeat up and running. This will ensure that the business retains its customers and create a field for even more.
+
+Analysing these datasets have proven essential and brought out some insights I would love to recommend to the business.
+
+### Target Audience.
+
+The target audience are the individuals who spend a lot of time in offices . This audience are mostly at a risk of health related issues and reaching ou to them would be helping. I would like to consider this two way, the audience benefits and puts itself away from health risks while Bellabeat as a company gets in more clients.
+
+The Bellabeat company App should be good enough to keep the business running and offer it a better position from competition.
+
+#### Recomendations
+
+- The time spent by the smart device users being inactive is very long. Bellabeat needs to encourage these users on the need to keep their bodies fit through exercising (Walking). Notifications to individuals with high sedentary time are essential to reming them to stay active.
+
+- To reach the average time of 8 hours asleep, Bellabeat need to also notify its clients on sleeping time as most of them are spending more time in bed than asleep.
+
+- Average total steps per day (7638 steps) is a little bit less than recommended by the CDC. According
+to the CDC research, taking 8,000 steps per day is associated with a 51% lower risk for all-cause
+mortality (or death from all causes). And taking 12,000 steps per day was associated with a 65% lower
+risk compared with taking 4,000 steps.Bellabeat should recommend its clients to take at least 8,000 steps per day.
+
+Thank you for your interest in this Case Study.
+
+
+
+
+
+
+
+
+
+
+
+
+
